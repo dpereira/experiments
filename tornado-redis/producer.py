@@ -15,7 +15,7 @@ def produce(count, client, prefix='task_'):
 
 @tornado.gen.coroutine
 def sync(client, i, task_id):
-    key, data = yield client.blpop(task_id, timeout=10)
+    key, data = yield client.blpop(task_id)
     print('Got %s' % key)
     r = json.loads(data.decode())
     task_id2, count = r
@@ -30,16 +30,15 @@ def run(loop):
         loop=loop
     )
     tasks = []
+    fs = []
 
-    for i in range(500000):
-        tasks.append(produce(i, client))
+    for i in range(50000):
+        task_id = produce(i, client)
+        fs.append(sync(client, i, task_id))
+        if i % 1000:
+            yield tornado.gen.sleep(0.01)
 
     print('All tasks sent')
-
-    fs = []
-    for i, task_id in enumerate(tasks):
-        fs.append(sync(client, i, task_id))
-
     yield from fs
 
     client.close()
