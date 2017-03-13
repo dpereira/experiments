@@ -2,9 +2,9 @@ import asyncio
 import aioredis
 
 async def reply(client, task):
-    if task in (b'task_0',):
-        print('Waiting to reply to %s' % task)
-        await asyncio.sleep(10)
+#    if task in (b'task_0',):
+#        print('Waiting to reply to %s' % task)
+#        await asyncio.sleep(10)
 
     print('Replying %s' % task)
     await client.rpush(task.decode(), task)
@@ -20,6 +20,11 @@ async def run(loop):
         ('localhost', 6379),
         loop=loop
     )
+    writer = await aioredis.create_redis(
+        ('localhost', 6379),
+        loop=loop
+    )
+
 
     tasks = []
 
@@ -27,11 +32,9 @@ async def run(loop):
     while True:
         count += 1
         task = await consume(client)
-        tasks.append(asyncio.ensure_future(reply(client, task)))
-        if count % 7 == 0:
-            print('Waiting tasks: %s' % tasks)
-            await asyncio.wait(tasks)
-            tasks = []
+        tasks.append(asyncio.ensure_future(reply(writer, task)))
+
+    await asyncio.wait(tasks)
 
 
 loop = asyncio.get_event_loop()
