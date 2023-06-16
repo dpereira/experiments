@@ -34,7 +34,7 @@ fn open_data_source() -> std::io::Result<std::fs::File> {
     std::fs::OpenOptions::new().read(true).open("./data/source.gz")
 }
 
-fn decompress(file: std::fs::File) -> String {
+fn decompress(file: std::fs::File) -> Vec<u8> {
     let mut total = 0;
     let mut content = Vec::<u8>::new();
     let mut raw_reader = Reader { source: file };
@@ -47,14 +47,14 @@ fn decompress(file: std::fs::File) -> String {
                 break
             },
             Ok(bytes) => {
-                content.extend(buffer);
+                content.extend(&buffer[0..bytes]);
                 println!("Read {} bytes from file. Total: {}", buffer.len(), content.len())
             },
             Err(msg) => println!("Failed to read from file: {}.", msg),
         }
     }
 
-    String::from_utf8(content).unwrap()
+    content
 }
 
 fn main() {
@@ -63,7 +63,8 @@ fn main() {
     match open_data_source() {
         Ok(mut file) => {
             let content = decompress(file);
-            println!("Content decompressed is:\n\n=======\n{}\n=======\n", content)
+            let mut out = std::fs::OpenOptions::new().write(true).create(true).open("data/decompressed.txt").unwrap();
+            out.write(&content);
         },
         Err(msg) => println!("Failed to open file: {}.", msg),
     }
